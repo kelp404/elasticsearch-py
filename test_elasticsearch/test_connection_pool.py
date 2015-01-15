@@ -1,11 +1,15 @@
 import time
 
-from elasticsearch.connection_pool import ConnectionPool, RoundRobinSelector
+from elasticsearch.connection_pool import ConnectionPool, RoundRobinSelector, DummyConnectionPool
 from elasticsearch.exceptions import ImproperlyConfigured
 
 from .test_cases import TestCase
 
 class TestConnectionPool(TestCase):
+    def test_dummy_cp_raises_exception_on_more_connections(self):
+        self.assertRaises(ImproperlyConfigured, DummyConnectionPool, [])
+        self.assertRaises(ImproperlyConfigured, DummyConnectionPool, [object(), object()])
+
     def test_raises_exception_when_no_connections_defined(self):
         self.assertRaises(ImproperlyConfigured, ConnectionPool, [])
 
@@ -69,6 +73,14 @@ class TestConnectionPool(TestCase):
         pool.get_connection()
         self.assertEquals(42, pool.connections[-1])
         self.assertEquals(100, len(pool.connections))
+
+    def test_force_resurrect_always_returns_a_connection(self):
+        pool = ConnectionPool([(0, {})])
+
+        pool.connections = []
+        self.assertEquals(0, pool.get_connection())
+        self.assertEquals([], pool.connections)
+        self.assertTrue(pool.dead.empty())
 
     def test_already_failed_connection_has_longer_timeout(self):
         pool = ConnectionPool([(x, {}) for x in range(100)])

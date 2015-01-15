@@ -64,8 +64,8 @@ class Elasticsearch(object):
     Elasticsearch low-level client. Provides a straightforward mapping from
     Python to ES REST endpoints.
 
-    The instance has attributes `cat`, `cluster`, `indices`, `nodes` and
-    `snapshot` that provide access to instances of
+    The instance has attributes ``cat``, ``cluster``, ``indices``, ``nodes``
+    and ``snapshot`` that provide access to instances of
     :class:`~elasticsearch.client.CatClient`,
     :class:`~elasticsearch.client.ClusterClient`,
     :class:`~elasticsearch.client.IndicesClient`,
@@ -100,7 +100,7 @@ class Elasticsearch(object):
     specify those::
 
         # connect to localhost directly and another node using SSL on port 443
-        # and an url_prefix
+        # and an url_prefix. Note that ``port`` needs to be an int.
         es = Elasticsearch([
             {'host': 'localhost'},
             {'host': 'othernode', 'port': 443, 'url_prefix': 'es', 'use_ssl': True},
@@ -209,10 +209,9 @@ class Elasticsearch(object):
 
         :arg index: The name of the index
         :arg doc_type: The type of the document
-        :arg id: Document ID
         :arg body: The document
-        :arg consistency: Explicit write consistency setting for the operation
         :arg id: Specific document ID (when the POST method is used)
+        :arg consistency: Explicit write consistency setting for the operation
         :arg parent: ID of the parent document
         :arg percolate: Percolator queries to execute while indexing the document
         :arg refresh: Refresh the index after performing the operation
@@ -252,7 +251,8 @@ class Elasticsearch(object):
         for param in (index, doc_type, body):
             if param in SKIP_IN_PATH:
                 raise ValueError("Empty value passed for a required argument.")
-        _, data = self.transport.perform_request('PUT' if id else 'POST',
+        method = 'POST' if id in SKIP_IN_PATH else 'PUT'
+        _, data = self.transport.perform_request(method,
             _make_path(index, doc_type, id), params=params, body=body)
         return data
 
@@ -1160,7 +1160,7 @@ class Elasticsearch(object):
             _make_path('_scripts', lang, id), params=params)
         return data
 
-    @query_params()
+    @query_params('op_type', 'version', 'version_type')
     def put_template(self, id, body, params=None):
         """
         Create a search template.
@@ -1168,6 +1168,9 @@ class Elasticsearch(object):
 
         :arg id: Template ID
         :arg body: The document
+        :arg op_type: Explicit operation type, default u'index'
+        :arg version: Explicit version number for concurrency control
+        :arg version_type: Specific version type
         """
         for param in (id, body):
             if param in SKIP_IN_PATH:
@@ -1176,28 +1179,31 @@ class Elasticsearch(object):
             'template', id), params=params, body=body)
         return data
 
-    @query_params()
-    def get_template(self, id, body=None, params=None):
+    @query_params('version', 'version_type')
+    def get_template(self, id, params=None):
         """
         Retrieve a search template.
         `<http://www.elasticsearch.org/guide/en/elasticsearch/reference/current/search-template.html>`_
 
         :arg id: Template ID
-        :arg body: The document
+        :arg version: Explicit version number for concurrency control
+        :arg version_type: Specific version type
         """
         if id in SKIP_IN_PATH:
             raise ValueError("Empty value passed for a required argument 'id'.")
-        _, data = self.transport.perform_request('GET', _make_path('_search',
-            'template', id), params=params, body=body)
+        _, data = self.transport.perform_request('GET', _make_path('_search', 'template',
+            id), params=params)
         return data
 
-    @query_params()
+    @query_params('version', 'version_type')
     def delete_template(self, id=None, params=None):
         """
         Delete a search template.
         `<http://www.elasticsearch.org/guide/en/elasticsearch/reference/current/search-template.html>`_
 
         :arg id: Template ID
+        :arg version: Explicit version number for concurrency control
+        :arg version_type: Specific version type
         """
         _, data = self.transport.perform_request('DELETE', _make_path('_search',
             'template', id), params=params)

@@ -1,8 +1,9 @@
 import re
 import time
+from itertools import chain
 
 from .connection import Urllib3HttpConnection
-from .connection_pool import ConnectionPool
+from .connection_pool import ConnectionPool, DummyConnectionPool
 from .serializer import JSONSerializer, Deserializer, DEFAULT_SERIALIZERS
 from .exceptions import ConnectionError, TransportError, SerializationError, \
                         ConnectionTimeout, ImproperlyConfigured
@@ -61,7 +62,9 @@ class Transport(object):
         :arg sniff_on_connection_fail: flag controlling if connection failure triggers a sniff
         :arg sniff_timeout: timeout used for the sniff request - it should be a
             fast api call and we are talking potentially to more nodes so we want
-            to fail quickly.
+            to fail quickly. Not used during initial sniffing (if
+            ``sniff_on_start`` is on) when the connection still isn't
+            initialized.
         :arg serializer: serializer instance
         :arg serializers: optional dict of serializer instances that will be
             used for deserializing data coming from the server. (key is the mimetype)
@@ -124,7 +127,7 @@ class Transport(object):
         self.host_info_callback = host_info_callback
 
         if sniff_on_start:
-            self.sniff_hosts()
+            self.sniff_hosts(True)
 
     def add_connection(self, host):
         """
@@ -165,8 +168,12 @@ class Transport(object):
             return self.connection_class(**kwargs)
         connections = map(_create_connection, hosts)
 
-        # pass the hosts dicts to the connection pool to optionally extract parameters from
-        self.connection_pool = self.connection_pool_class(list(zip(connections, hosts)), **self.kwargs)
+        connections = list(zip(connections, hosts))
+        if len(connections) == 1:
+            self.connection_pool = DummyConnectionPool(connections)
+        else:
+            # pass the hosts dicts to the connection pool to optionally extract parameters from
+            self.connection_pool = self.connection_pool_class(connections, **self.kwargs)
 
     def get_connection(self):
         """
@@ -178,12 +185,15 @@ class Transport(object):
                 self.sniff_hosts()
         return self.connection_pool.get_connection()
 
-    def sniff_hosts(self):
+    def sniff_hosts(self, initial=False):
         """
         Obtain a list of nodes from the cluster and create a new connection
         pool using the information retrieved.
 
-        To extract the node connection parameters use the `nodes_to_host_callback`.
+        To extract the node connection parameters use the ``nodes_to_host_callback``.
+
+        :arg initial: flag indicating if this is during startup
+            (``sniff_on_start``), ignore the ``sniff_timeout`` if ``True``
         """
         previous_sniff = self.last_sniff
         try:
@@ -191,11 +201,11 @@ class Transport(object):
             self.last_sniff = time.time()
             # go through all current connections as well as the
             # seed_connections for good measure
-            for c in self.connection_pool.connections + self.seed_connections:
+            for c in chain(self.connection_pool.connections, self.seed_connections):
                 try:
                     # use small timeout for the sniffing request, should be a fast api call
                     _, headers, node_info = c.perform_request('GET', '/_nodes/_all/clear',
-                        timeout=self.sniff_timeout)
+                        timeout=self.sniff_timeout if not initial else None)
                     node_info = self.deserializer.loads(node_info, headers.get('content-type'))
                     break
                 except (ConnectionError, SerializationError):
