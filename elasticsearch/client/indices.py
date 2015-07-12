@@ -3,11 +3,11 @@ from ..exceptions import NotFoundError
 
 class IndicesClient(NamespacedClient):
     @query_params('analyzer', 'char_filters', 'field', 'filters', 'format',
-        'index', 'prefer_local', 'text', 'tokenizer')
+        'prefer_local', 'text', 'tokenizer')
     def analyze(self, index=None, body=None, params=None):
         """
         Perform the analysis process on a text and return the tokens breakdown of the text.
-        `<http://www.elasticsearch.org/guide/en/elasticsearch/reference/current/indices-analyze.html>`_
+        `<http://www.elastic.co/guide/en/elasticsearch/reference/current/indices-analyze.html>`_
 
         :arg index: The name of the index to scope the operation
         :arg body: The text on which the analysis should be performed
@@ -18,7 +18,6 @@ class IndicesClient(NamespacedClient):
             passing the analyzer name)
         :arg filters: A comma-separated list of filters to use for the analysis
         :arg format: Format of the output, default u'detailed'
-        :arg index: The name of the index to scope the operation
         :arg prefer_local: With `true`, specify that a local shard should be
             used if available, with `false`, use a random shard (default: true)
         :arg text: The text on which the analysis should be performed (when
@@ -35,7 +34,7 @@ class IndicesClient(NamespacedClient):
         """
         Explicitly refresh one or more index, making all operations performed
         since the last refresh available for search.
-        `<http://www.elasticsearch.org/guide/en/elasticsearch/reference/current/indices-refresh.html>`_
+        `<http://www.elastic.co/guide/en/elasticsearch/reference/current/indices-refresh.html>`_
 
         :arg index: A comma-separated list of index names; use `_all` or empty
             string to perform the operation on all indices
@@ -54,12 +53,12 @@ class IndicesClient(NamespacedClient):
             params=params)
         return data
 
-    @query_params('force', 'full', 'allow_no_indices', 'expand_wildcards',
-        'ignore_indices', 'ignore_unavailable')
+    @query_params('allow_no_indices', 'expand_wildcards', 'force', 'full',
+        'ignore_indices', 'ignore_unavailable', 'wait_if_ongoing')
     def flush(self, index=None, params=None):
         """
         Explicitly flush one or more indices.
-        `<http://www.elasticsearch.org/guide/en/elasticsearch/reference/current/indices-flush.html>`_
+        `<http://www.elastic.co/guide/en/elasticsearch/reference/current/indices-flush.html>`_
 
         :arg index: A comma-separated list of index names; use `_all` or empty
             string for all indices
@@ -76,6 +75,11 @@ class IndicesClient(NamespacedClient):
             ignore `missing` ones (default: none)
         :arg ignore_unavailable: Whether specified concrete indices should be ignored
             when unavailable (missing or closed)
+        :arg wait_if_ongoing: If set to true the flush operation will block
+            until the flush can be executed if another flush operation is
+            already executing. The default is false and will cause an exception
+            to be thrown on the shard level if another flush operation is
+            already running.
         """
         _, data = self.transport.perform_request('POST', _make_path(index, '_flush'),
             params=params)
@@ -85,7 +89,7 @@ class IndicesClient(NamespacedClient):
     def create(self, index, body=None, params=None):
         """
         Create an index in Elasticsearch.
-        `<http://www.elasticsearch.org/guide/en/elasticsearch/reference/current/indices-create-index.html>`_
+        `<http://www.elastic.co/guide/en/elasticsearch/reference/current/indices-create-index.html>`_
 
         :arg index: The name of the index
         :arg body: The configuration for the index (`settings` and `mappings`)
@@ -98,12 +102,12 @@ class IndicesClient(NamespacedClient):
             params=params, body=body)
         return data
 
-    @query_params('allow_no_indices', 'expand_wildcards', 'ignore_unavailable',
-        'local')
+    @query_params('allow_no_indices', 'expand_wildcards', 'flat_settings',
+        'human', 'ignore_unavailable', 'local')
     def get(self, index, feature=None, params=None):
         """
         The get index API allows to retrieve information about one or more indexes.
-        `<http://www.elasticsearch.org/guide/en/elasticsearch/reference/current/indices-get-index.html>`_
+        `<http://www.elastic.co/guide/en/elasticsearch/reference/current/indices-get-index.html>`_
 
         :arg index: A comma-separated list of index names
         :arg feature: A comma-separated list of features
@@ -111,6 +115,9 @@ class IndicesClient(NamespacedClient):
             concrete indices (default: false)
         :arg expand_wildcards: Whether wildcard expressions should get expanded
             to open or closed indices (default: open)
+        :arg flat_settings: Return settings in flat format (default: false)
+        :arg human: Whether to return version and creation date values in human-
+            readable format., default False
         :arg ignore_unavailable: Ignore unavailable indexes (default: false)
         :arg local: Return local information, do not retrieve the state from
             master node (default: false)
@@ -121,12 +128,12 @@ class IndicesClient(NamespacedClient):
             feature), params=params)
         return data
 
-    @query_params('timeout', 'master_timeout' 'allow_no_indices', 'expand_wildcards',
-        'ignore_unavailable')
+    @query_params('timeout', 'master_timeout' 'allow_no_indices',
+        'expand_wildcards', 'ignore_unavailable')
     def open(self, index, params=None):
         """
         Open a closed index to make it available for search.
-        `<http://www.elasticsearch.org/guide/en/elasticsearch/reference/current/indices-open-close.html>`_
+        `<http://www.elastic.co/guide/en/elasticsearch/reference/current/indices-open-close.html>`_
 
         :arg index: The name of the index
         :arg master_timeout: Specify timeout for connection to master
@@ -151,7 +158,7 @@ class IndicesClient(NamespacedClient):
         """
         Close an index to remove it's overhead from the cluster. Closed index
         is blocked for read/write operations.
-        `<http://www.elasticsearch.org/guide/en/elasticsearch/reference/current/indices-open-close.html>`_
+        `<http://www.elastic.co/guide/en/elasticsearch/reference/current/indices-open-close.html>`_
 
         :arg index: A comma-separated list of indices to close; use `_all` or
             '*' to close all indices
@@ -175,7 +182,7 @@ class IndicesClient(NamespacedClient):
     def delete(self, index, params=None):
         """
         Delete an index in Elasticsearch
-        `<http://www.elasticsearch.org/guide/en/elasticsearch/reference/current/indices-delete-index.html>`_
+        `<http://www.elastic.co/guide/en/elasticsearch/reference/current/indices-delete-index.html>`_
 
         :arg index: A comma-separated list of indices to delete; use `_all` or
             '*' to delete all indices
@@ -193,7 +200,7 @@ class IndicesClient(NamespacedClient):
     def exists(self, index, params=None):
         """
         Return a boolean indicating whether given index exists.
-        `<http://www.elasticsearch.org/guide/en/elasticsearch/reference/current/indices-indices-exists.html>`_
+        `<http://www.elastic.co/guide/en/elasticsearch/reference/current/indices-exists.html>`_
 
         :arg index: A list of indices to check
         :arg allow_no_indices: Whether to ignore if a wildcard indices
@@ -214,12 +221,12 @@ class IndicesClient(NamespacedClient):
             return False
         return True
 
-    @query_params('allow_no_indices', 'expand_wildcards', 'ignore_indices', 'ignore_unavailable',
-        'local')
+    @query_params('allow_no_indices', 'expand_wildcards', 'ignore_indices',
+        'ignore_unavailable', 'local')
     def exists_type(self, index, doc_type, params=None):
         """
         Check if a type/types exists in an index/indices.
-        `<http://www.elasticsearch.org/guide/en/elasticsearch/reference/current/indices-types-exists.html>`_
+        `<http://www.elastic.co/guide/en/elasticsearch/reference/current/indices-types-exists.html>`_
 
         :arg index: A comma-separated list of index names; use `_all` to check
             the types across all indices
@@ -250,13 +257,13 @@ class IndicesClient(NamespacedClient):
     def put_mapping(self, doc_type, body, index=None, params=None):
         """
         Register specific mapping definition for a specific type.
-        `<http://www.elasticsearch.org/guide/en/elasticsearch/reference/current/indices-put-mapping.html>`_
+        `<http://www.elastic.co/guide/en/elasticsearch/reference/current/indices-put-mapping.html>`_
 
-        :arg index: A comma-separated list of index names the mapping should be
-            added to (supports wildcards); use `_all` or omit to add the
-            mapping on all indices.
         :arg doc_type: The name of the document type
         :arg body: The mapping definition
+        :arg index: A list of index names the mapping should be added to
+            (supports wildcards); use `_all` or omit to add the mapping on all
+            indices.
         :arg allow_no_indices: Whether to ignore if a wildcard indices
             expression resolves into no concrete indices. (This includes `_all`
             string or when no indices have been specified)
@@ -276,12 +283,12 @@ class IndicesClient(NamespacedClient):
             params=params, body=body)
         return data
 
-    @query_params('ignore_unavailable', 'allow_no_indices',
-        'expand_wildcards', 'local')
+    @query_params('ignore_unavailable', 'allow_no_indices', 'expand_wildcards',
+        'local')
     def get_mapping(self, index=None, doc_type=None, params=None):
         """
         Retrieve mapping definition of index or index/type.
-        `<http://www.elasticsearch.org/guide/en/elasticsearch/reference/current/indices-get-mapping.html>`_
+        `<http://www.elastic.co/guide/en/elasticsearch/reference/current/indices-get-mapping.html>`_
 
         :arg index: A comma-separated list of index names; use `_all` or empty
             string for all indices
@@ -305,7 +312,7 @@ class IndicesClient(NamespacedClient):
     def get_field_mapping(self, field, index=None, doc_type=None, params=None):
         """
         Retrieve mapping definition of a specific field.
-        `<http://www.elasticsearch.org/guide/en/elasticsearch/reference/current/indices-get-field-mapping.html>`_
+        `<http://www.elastic.co/guide/en/elasticsearch/reference/current/indices-get-field-mapping.html>`_
 
         :arg index: A comma-separated list of index names; use `_all` or empty
             string for all indices
@@ -332,7 +339,7 @@ class IndicesClient(NamespacedClient):
     def delete_mapping(self, index, doc_type, params=None):
         """
         Delete a mapping (type) along with its data.
-        `<http://www.elasticsearch.org/guide/en/elasticsearch/reference/current/indices-delete-mapping.html>`_
+        `<http://www.elastic.co/guide/en/elasticsearch/reference/current/indices-delete-mapping.html>`_
 
         :arg index: A comma-separated list of index names (supports wildcard);
             use `_all` for all indices
@@ -352,7 +359,7 @@ class IndicesClient(NamespacedClient):
     def put_alias(self, name, index, body=None, params=None):
         """
         Create an alias for a specific index/indices.
-        `<http://www.elasticsearch.org/guide/en/elasticsearch/reference/current/indices-aliases.html>`_
+        `<http://www.elastic.co/guide/en/elasticsearch/reference/current/indices-aliases.html>`_
 
         :arg index: A comma-separated list of index names the alias should
             point to (supports wildcards); use `_all` or omit to perform the
@@ -374,7 +381,7 @@ class IndicesClient(NamespacedClient):
     def exists_alias(self, name, index=None, params=None):
         """
         Return a boolean indicating whether given alias exists.
-        `<http://www.elasticsearch.org/guide/en/elasticsearch/reference/current/indices-aliases.html>`_
+        `<http://www.elastic.co/guide/en/elasticsearch/reference/current/indices-aliases.html>`_
 
         :arg name: A comma-separated list of alias names to return
         :arg index: A comma-separated list of index names to filter aliases
@@ -401,7 +408,7 @@ class IndicesClient(NamespacedClient):
     def get_alias(self, index=None, name=None, params=None):
         """
         Retrieve a specified alias.
-        `<http://www.elasticsearch.org/guide/en/elasticsearch/reference/current/indices-aliases.html>`_
+        `<http://www.elastic.co/guide/en/elasticsearch/reference/current/indices-aliases.html>`_
 
         :arg name: A comma-separated list of alias names to return
         :arg index: A comma-separated list of index names to filter aliases
@@ -425,7 +432,7 @@ class IndicesClient(NamespacedClient):
     def get_aliases(self, index=None, name=None, params=None):
         """
         Retrieve specified aliases
-        `<http://www.elasticsearch.org/guide/en/elasticsearch/reference/current/indices-aliases.html>`_
+        `<http://www.elastic.co/guide/en/elasticsearch/reference/current/indices-aliases.html>`_
 
         :arg index: A comma-separated list of index names to filter aliases
         :arg name: A comma-separated list of alias names to filter
@@ -441,7 +448,7 @@ class IndicesClient(NamespacedClient):
     def update_aliases(self, body, params=None):
         """
         Update specified aliases.
-        `<http://www.elasticsearch.org/guide/en/elasticsearch/reference/current/indices-aliases.html>`_
+        `<http://www.elastic.co/guide/en/elasticsearch/reference/current/indices-aliases.html>`_
 
         :arg body: The definition of `actions` to perform
         :arg master_timeout: Specify timeout for connection to master
@@ -457,7 +464,7 @@ class IndicesClient(NamespacedClient):
     def delete_alias(self, index, name, params=None):
         """
         Delete specific alias.
-        `<http://www.elasticsearch.org/guide/en/elasticsearch/reference/current/indices-aliases.html>`_
+        `<http://www.elastic.co/guide/en/elasticsearch/reference/current/indices-aliases.html>`_
 
         :arg index: A comma-separated list of index names (supports wildcards);
             use `_all` for all indices
@@ -478,7 +485,7 @@ class IndicesClient(NamespacedClient):
         """
         Create an index template that will automatically be applied to new
         indices created.
-        `<http://www.elasticsearch.org/guide/en/elasticsearch/reference/current/indices-templates.html>`_
+        `<http://www.elastic.co/guide/en/elasticsearch/reference/current/indices-templates.html>`_
 
         :arg name: The name of the template
         :arg body: The template definition
@@ -497,15 +504,17 @@ class IndicesClient(NamespacedClient):
             params=params, body=body)
         return data
 
-    @query_params('local')
+    @query_params('local', 'master_timeout')
     def exists_template(self, name, params=None):
         """
         Return a boolean indicating whether given template exists.
-        `<http://www.elasticsearch.org/guide/en/elasticsearch/reference/current/indices-templates.html>`_
+        `<http://www.elastic.co/guide/en/elasticsearch/reference/current/indices-templates.html>`_
 
         :arg name: The name of the template
         :arg local: Return local information, do not retrieve the state from
             master node (default: false)
+        :arg master_timeout: Explicit operation timeout for connection to master
+            node
         """
         if name in SKIP_IN_PATH:
             raise ValueError("Empty value passed for a required argument 'name'.")
@@ -516,16 +525,18 @@ class IndicesClient(NamespacedClient):
             return False
         return True
 
-    @query_params('flat_settings', 'local')
+    @query_params('flat_settings', 'local', 'master_timeout')
     def get_template(self, name=None, params=None):
         """
         Retrieve an index template by its name.
-        `<http://www.elasticsearch.org/guide/en/elasticsearch/reference/current/indices-templates.html>`_
+        `<http://www.elastic.co/guide/en/elasticsearch/reference/current/indices-templates.html>`_
 
         :arg name: The name of the template
         :arg flat_settings: Return settings in flat format (default: false)
         :arg local: Return local information, do not retrieve the state from
             master node (default: false)
+        :arg master_timeout: Explicit operation timeout for connection to master
+            node
         """
         _, data = self.transport.perform_request('GET', _make_path('_template', name),
             params=params)
@@ -535,7 +546,7 @@ class IndicesClient(NamespacedClient):
     def delete_template(self, name, params=None):
         """
         Delete an index template by its name.
-        `<http://www.elasticsearch.org/guide/en/elasticsearch/reference/current/indices-templates.html>`_
+        `<http://www.elastic.co/guide/en/elasticsearch/reference/current/indices-templates.html>`_
 
         :arg name: The name of the template
         :arg master_timeout: Specify timeout for connection to master
@@ -548,11 +559,11 @@ class IndicesClient(NamespacedClient):
         return data
 
     @query_params('expand_wildcards', 'ignore_indices', 'ignore_unavailable',
-        'flat_settings', 'local')
+        'flat_settings', 'local', 'human')
     def get_settings(self, index=None, name=None, params=None):
         """
         Retrieve settings for one or more (or all) indices.
-        `<http://www.elasticsearch.org/guide/en/elasticsearch/reference/current/indices-get-settings.html>`_
+        `<http://www.elastic.co/guide/en/elasticsearch/reference/current/indices-get-settings.html>`_
 
         :arg index: A comma-separated list of index names; use `_all` or empty
             string to perform the operation on all indices
@@ -564,6 +575,8 @@ class IndicesClient(NamespacedClient):
         :arg ignore_unavailable: Whether specified concrete indices should be ignored
             when unavailable (missing or closed)
         :arg flat_settings: Return settings in flat format (default: false)
+        :arg human: Whether to return version and creation date values in human-
+            readable format., default False
         :arg local: Return local information, do not retrieve the state from
             master node (default: false)
         """
@@ -576,7 +589,7 @@ class IndicesClient(NamespacedClient):
     def put_settings(self, body, index=None, params=None):
         """
         Change specific index level settings in real time.
-        `<http://www.elasticsearch.org/guide/en/elasticsearch/reference/current/indices-update-settings.html>`_
+        `<http://www.elastic.co/guide/en/elasticsearch/reference/current/indices-update-settings.html>`_
 
         :arg body: The index settings to be updated
         :arg index: A comma-separated list of index names; use `_all` or empty
@@ -603,7 +616,7 @@ class IndicesClient(NamespacedClient):
         """
         Create an index warmer to run registered search requests to warm up the
         index before it is available for search.
-        `<http://www.elasticsearch.org/guide/en/elasticsearch/reference/current/indices-warmers.html>`_
+        `<http://www.elastic.co/guide/en/elasticsearch/reference/current/indices-warmers.html>`_
 
         :arg name: The name of the warmer
         :arg body: The search request definition for the warmer (query, filters,
@@ -638,7 +651,7 @@ class IndicesClient(NamespacedClient):
     def get_warmer(self, index=None, doc_type=None, name=None, params=None):
         """
         Retreieve an index warmer.
-        `<http://www.elasticsearch.org/guide/en/elasticsearch/reference/current/indices-warmers.html>`_
+        `<http://www.elastic.co/guide/en/elasticsearch/reference/current/indices-warmers.html>`_
 
         :arg index: A comma-separated list of index names to restrict the
             operation; use `_all` to perform the operation on all indices
@@ -663,7 +676,7 @@ class IndicesClient(NamespacedClient):
     def delete_warmer(self, index, name, params=None):
         """
         Delete an index warmer.
-        `<http://www.elasticsearch.org/guide/en/elasticsearch/reference/current/indices-warmers.html>`_
+        `<http://www.elastic.co/guide/en/elasticsearch/reference/current/indices-warmers.html>`_
 
         :arg index: A comma-separated list of index names to delete warmers from
             (supports wildcards); use `_all` to perform the operation on all indices.
@@ -683,7 +696,7 @@ class IndicesClient(NamespacedClient):
     def status(self, index=None, params=None):
         """
         Get a comprehensive status information of one or more indices.
-        `<http://elasticsearch.org/guide/reference/api/admin-indices-_/>`_
+        `<http://elastic.co/guide/reference/api/admin-indices-_/>`_
 
         :arg index: A comma-separated list of index names; use `_all` or empty
             string to perform the operation on all indices
@@ -711,7 +724,7 @@ class IndicesClient(NamespacedClient):
     def stats(self, index=None, metric=None, params=None):
         """
         Retrieve statistics on different operations happening on an index.
-        `<http://www.elasticsearch.org/guide/en/elasticsearch/reference/current/indices-stats.html>`_
+        `<http://www.elastic.co/guide/en/elasticsearch/reference/current/indices-stats.html>`_
 
         :arg index: A comma-separated list of index names; use `_all` or empty
             string to perform the operation on all indices
@@ -750,7 +763,7 @@ class IndicesClient(NamespacedClient):
     def segments(self, index=None, params=None):
         """
         Provide low level segments information that a Lucene index (shard level) is built with.
-        `<http://www.elasticsearch.org/guide/en/elasticsearch/reference/current/indices-segments.html>`_
+        `<http://www.elastic.co/guide/en/elasticsearch/reference/current/indices-segments.html>`_
 
         :arg index: A comma-separated list of index names; use `_all` or empty
             string to perform the operation on all indices
@@ -775,7 +788,7 @@ class IndicesClient(NamespacedClient):
     def optimize(self, index=None, params=None):
         """
         Explicitly optimize one or more indices through an API.
-        `<http://www.elasticsearch.org/guide/en/elasticsearch/reference/current/indices-optimize.html>`_
+        `<http://www.elastic.co/guide/en/elasticsearch/reference/current/indices-optimize.html>`_
 
         :arg index: A comma-separated list of index names; use `_all` or empty
             string to perform the operation on all indices
@@ -801,33 +814,42 @@ class IndicesClient(NamespacedClient):
         _, data = self.transport.perform_request('POST', _make_path(index, '_optimize'), params=params)
         return data
 
-    @query_params('explain', 'allow_no_indices', 'expand_wildcards',
-        'ignore_indices', 'ignore_unavailable', 'operation_threading', 'q',
-        'source')
+    @query_params('allow_no_indices', 'analyze_wildcard', 'analyzer',
+        'default_operator', 'df', 'expand_wildcards', 'explain',
+        'ignore_unavailable', 'lenient', 'lowercase_expanded_terms',
+        'operation_threading', 'q')
     def validate_query(self, index=None, doc_type=None, body=None, params=None):
         """
         Validate a potentially expensive query without executing it.
-        `<http://www.elasticsearch.org/guide/en/elasticsearch/reference/current/search-validate.html>`_
+        `<http://www.elastic.co/guide/en/elasticsearch/reference/current/search-validate.html>`_
 
-        :arg index: A comma-separated list of index names to restrict the operation;
-            use `_all` or empty string to perform the operation on all indices
+        :arg index: A comma-separated list of index names to restrict the
+            operation; use `_all` or empty string to perform the operation on
+            all indices
         :arg doc_type: A comma-separated list of document types to restrict the
             operation; leave empty to perform the operation on all types
-        :arg body: The query definition
-        :arg explain: Return detailed information about the error
+        :arg body: The query definition specified with the Query DSL
         :arg allow_no_indices: Whether to ignore if a wildcard indices
-            expression resolves into no concrete indices. (This includes `_all` string or
-            when no indices have been specified)
-        :arg expand_wildcards: Whether to expand wildcard expression to concrete indices
-            that are open, closed or both.
-        :arg ignore_indices: When performed on multiple indices, allows to
-            ignore `missing` ones (default: none)
-        :arg ignore_unavailable: Whether specified concrete indices should be ignored
-            when unavailable (missing or closed)
+            expression resolves into no concrete indices. (This includes `_all`
+            string or when no indices have been specified)
+        :arg analyze_wildcard: Specify whether wildcard and prefix queries
+            should be analyzed (default: false)
+        :arg analyzer: The analyzer to use for the query string
+        :arg default_operator: The default operator for query string query (AND
+            or OR), default u'OR'
+        :arg df: The field to use as default where no field prefix is given in
+            the query string
+        :arg expand_wildcards: Whether to expand wildcard expression to concrete
+            indices that are open, closed or both., default u'open'
+        :arg explain: Return detailed information about the error
+        :arg ignore_unavailable: Whether specified concrete indices should be
+            ignored when unavailable (missing or closed)
+        :arg lenient: Specify whether format-based query failures (such as
+            providing text to a numeric field) should be ignored
+        :arg lowercase_expanded_terms: Specify whether query terms should be
+            lowercased
         :arg operation_threading: TODO: ?
         :arg q: Query in the Lucene query string syntax
-        :arg source: The URL-encoded query definition (instead of using the
-            request body)
         """
         _, data = self.transport.perform_request('GET', _make_path(index, doc_type, '_validate', 'query'),
             params=params, body=body)
@@ -835,11 +857,11 @@ class IndicesClient(NamespacedClient):
 
     @query_params('field_data', 'fielddata', 'fields', 'filter', 'filter_cache',
         'filter_keys', 'id', 'id_cache', 'allow_no_indices', 'expand_wildcards',
-        'ignore_indices', 'ignore_unavailable', 'index', 'recycler')
+        'ignore_indices', 'ignore_unavailable', 'query_cache', 'recycler')
     def clear_cache(self, index=None, params=None):
         """
         Clear either all caches or specific cached associated with one ore more indices.
-        `<http://www.elasticsearch.org/guide/en/elasticsearch/reference/current/indices-clearcache.html>`_
+        `<http://www.elastic.co/guide/en/elasticsearch/reference/current/indices-clearcache.html>`_
 
         :arg index: A comma-separated list of index name to limit the operation
         :arg field_data: Clear field data
@@ -861,7 +883,7 @@ class IndicesClient(NamespacedClient):
             ignore `missing` ones (default: none)
         :arg ignore_unavailable: Whether specified concrete indices should be ignored
             when unavailable (missing or closed)
-        :arg index: A comma-separated list of index name to limit the operation
+        :arg query_cache: Clear query cache
         :arg recycler: Clear the recycler cache
         """
         _, data = self.transport.perform_request('POST', _make_path(index, '_cache', 'clear'),
@@ -874,7 +896,7 @@ class IndicesClient(NamespacedClient):
         The indices recovery API provides insight into on-going shard
         recoveries. Recovery status may be reported for specific indices, or
         cluster-wide.
-        `<http://www.elasticsearch.org/guide/en/elasticsearch/reference/master/indices-recovery.html>`_
+        `<http://www.elastic.co/guide/en/elasticsearch/reference/master/indices-recovery.html>`_
 
         :arg index: A comma-separated list of index names; use `_all` or empty
             string to perform the operation on all indices
@@ -890,34 +912,12 @@ class IndicesClient(NamespacedClient):
             '_recovery'), params=params)
         return data
 
-    @query_params('allow_no_indices', 'expand_wildcards', 'ignore_indices', 'ignore_unavailable')
-    def snapshot_index(self, index=None, params=None):
-        """
-        Explicitly perform a snapshot through the gateway of one or more indices (backup them).
-        `<http://www.elasticsearch.org/guide/en/elasticsearch/reference/current/indices-gateway-snapshot.html>`_
-
-        :arg index: A comma-separated list of index names; use `_all` or empty
-            string for all indices
-        :arg allow_no_indices: Whether to ignore if a wildcard indices
-            expression resolves into no concrete indices. (This includes `_all` string or
-            when no indices have been specified)
-        :arg expand_wildcards: Whether to expand wildcard expression to concrete indices
-            that are open, closed or both.
-        :arg ignore_indices: When performed on multiple indices, allows to
-            ignore `missing` ones (default: none)
-        :arg ignore_unavailable: Whether specified concrete indices should be ignored
-            when unavailable (missing or closed)
-        """
-        _, data = self.transport.perform_request('POST',
-            _make_path(index, '_gateway', 'snapshot'), params=params)
-        return data
-
     @query_params('allow_no_indices', 'expand_wildcards', 'ignore_unavailable',
-        'wait_for_completion')
+        'only_ancient_segments', 'wait_for_completion')
     def upgrade(self, index=None, params=None):
         """
         Upgrade one or more indices to the latest format through an API.
-        `<http://www.elasticsearch.org/guide/en/elasticsearch/reference/current/indices-upgrade.html>`_
+        `<http://www.elastic.co/guide/en/elasticsearch/reference/current/indices-upgrade.html>`_
 
         :arg index: A comma-separated list of index names; use `_all` or empty
             string to perform the operation on all indices
@@ -928,8 +928,10 @@ class IndicesClient(NamespacedClient):
             indices that are open, closed or both., default u'open'
         :arg ignore_unavailable: Whether specified concrete indices should be
             ignored when unavailable (missing or closed)
+        :arg only_ancient_segments: If true, only ancient (an older Lucene major
+            release) segments will be upgraded
         :arg wait_for_completion: Specify whether the request should block until
-            the all segments are upgraded (default: false)
+            the all segments are upgraded (default: true)
         """
         _, data = self.transport.perform_request('POST', _make_path(index,
             '_upgrade'), params=params)
@@ -940,7 +942,7 @@ class IndicesClient(NamespacedClient):
     def get_upgrade(self, index=None, params=None):
         """
         Monitor how much of one or more index is upgraded.
-        `<http://www.elasticsearch.org/guide/en/elasticsearch/reference/current/indices-upgrade.html>`_
+        `<http://www.elastic.co/guide/en/elasticsearch/reference/current/indices-upgrade.html>`_
 
         :arg index: A comma-separated list of index names; use `_all` or empty
             string to perform the operation on all indices
@@ -957,3 +959,17 @@ class IndicesClient(NamespacedClient):
         _, data = self.transport.perform_request('GET', _make_path(index,
             '_upgrade'), params=params)
         return data
+
+    @query_params()
+    def flush_synced(self, index=None, params=None):
+        """
+        Perform a normal flush, then add a generated unique marker (sync_id) to all shards.
+        `<https://www.elastic.co/guide/en/elasticsearch/reference/current/indices-synced-flush.html>`_
+
+        :arg index: A comma-separated list of index names; use `_all` or empty
+            string for all indices
+        """
+        _, data = self.transport.perform_request('POST', _make_path(index,
+            '_flush', 'synced'), params=params)
+        return data
+

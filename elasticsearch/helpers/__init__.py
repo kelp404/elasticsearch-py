@@ -1,8 +1,11 @@
+import logging
 from itertools import islice
 from operator import methodcaller
 
-from ..exceptions import ElasticsearchException
+from ..exceptions import ElasticsearchException, TransportError
 from ..compat import map
+
+logger = logging.getLogger('elasticsearch.helpers')
 
 class BulkIndexError(ElasticsearchException):
     @property
@@ -10,6 +13,9 @@ class BulkIndexError(ElasticsearchException):
         """ List of errors from execution of the last chunk. """
         return self.args[1]
 
+
+class ScanError(ElasticsearchException):
+    pass
 
 def expand_action(data):
     """
@@ -33,7 +39,9 @@ def expand_action(data):
     return action, data.get('_source', data)
 
 
-def streaming_bulk(client, actions, chunk_size=500, raise_on_error=False, expand_action_callback=expand_action, **kwargs):
+def streaming_bulk(client, actions, chunk_size=500, raise_on_error=True,
+        expand_action_callback=expand_action, raise_on_exception=True, 
+        **kwargs):
     """
     Streaming bulk consumes actions from the iterable passed in and yields
     results per action. For non-streaming usecases use
@@ -78,8 +86,10 @@ def streaming_bulk(client, actions, chunk_size=500, raise_on_error=False, expand
     :arg client: instance of :class:`~elasticsearch.Elasticsearch` to use
     :arg actions: iterable containing the actions to be executed
     :arg chunk_size: number of docs in one chunk sent to es (default: 500)
-    :arg raise_on_error: raise `BulkIndexError` containing errors (as `.errors`
-        from the execution of the last chunk)
+    :arg raise_on_error: raise ``BulkIndexError`` containing errors (as `.errors`)
+        from the execution of the last chunk when some occur. By default we raise.
+    :arg raise_on_exception: if ``False`` then don't propagate exceptions from
+        call to ``bulk`` and just report the items that failed as failed.
     :arg expand_action_callback: callback executed on each action passed in,
         should return a tuple containing the action line and the data line
         (`None` if data line should be omitted).
@@ -91,6 +101,11 @@ def streaming_bulk(client, actions, chunk_size=500, raise_on_error=False, expand
 
     while True:
         chunk = islice(actions, chunk_size)
+
+        # raise on exception means we might need to iterate on chunk twice
+        if not raise_on_exception:
+            chunk = list(chunk)
+
         bulk_actions = []
         for action, data in chunk:
             bulk_actions.append(action)
@@ -100,8 +115,30 @@ def streaming_bulk(client, actions, chunk_size=500, raise_on_error=False, expand
         if not bulk_actions:
             return
 
-        # send the actual request
-        resp = client.bulk(bulk_actions, **kwargs)
+        try:
+            # send the actual request
+            resp = client.bulk(bulk_actions, **kwargs)
+        except TransportError as e:
+            # default behavior - just propagate exception
+            if raise_on_exception:
+                raise e
+
+            # if we are not propagating, mark all actions in current chunk as failed
+            err_message = str(e)
+            exc_errors = []
+            for action, data in chunk:
+                info = {"error": err_message, "status": e.status_code, "exception": e, "data": data}
+                op_type, action = action.popitem()
+                info.update(action)
+                exc_errors.append({op_type: info})
+
+            # emulate standard behavior for failed actions
+            if raise_on_error:
+                raise BulkIndexError('%i document(s) failed to index.' % len(exc_errors), exc_errors)
+            else:
+                for err in exc_errors:
+                    yield False, err
+                continue
 
         # go through request-reponse pairs and detect failures
         for op_type, item in map(methodcaller('popitem'), resp['items']):
@@ -156,23 +193,38 @@ def bulk(client, actions, stats_only=False, **kwargs):
 # preserve the name for backwards compatibility
 bulk_index = bulk
 
-def scan(client, query=None, scroll='5m', preserve_order=False, **kwargs):
+def scan(client, query=None, scroll='5m', raise_on_error=True, preserve_order=False, **kwargs):
     """
     Simple abstraction on top of the
     :meth:`~elasticsearch.Elasticsearch.scroll` api - a simple iterator that
     yields all hits as returned by underlining scroll requests.
 
+    By default scan does not return results in any pre-determined order. To
+    have a standard order in the returned documents (either by score or
+    explicit sort definition) when scrolling, use ``preserve_order=True``. This
+    may be an expensive operation and will negate the performance benefits of
+    using ``scan``.
+
     :arg client: instance of :class:`~elasticsearch.Elasticsearch` to use
     :arg query: body for the :meth:`~elasticsearch.Elasticsearch.search` api
     :arg scroll: Specify how long a consistent view of the index should be
         maintained for scrolled search
+    :arg raise_on_error: raises an exception (``ScanError``) if an error is
+        encountered (some shards fail to execute). By default we raise.
     :arg preserve_order: don't set the ``search_type`` to ``scan`` - this will
         cause the scroll to paginate with preserving the order. Note that this
         can be an extremely expensive operation and can easily lead to
         unpredictable results, use with caution.
 
     Any additional keyword arguments will be passed to the initial
-    :meth:`~elasticsearch.Elasticsearch.search` call.
+    :meth:`~elasticsearch.Elasticsearch.search` call::
+
+        scan(es,
+            query={"match": {"title": "python"}},
+            index="orders-*",
+            doc_type="books"
+        )
+
     """
     if not preserve_order:
         kwargs['search_type'] = 'scan'
@@ -190,18 +242,34 @@ def scan(client, query=None, scroll='5m', preserve_order=False, **kwargs):
             first_run = False
         else:
             resp = client.scroll(scroll_id, scroll=scroll)
-        if not resp['hits']['hits']:
-            break
+
         for hit in resp['hits']['hits']:
             yield hit
+
+        # check if we have any errrors
+        if resp["_shards"]["failed"]:
+            logger.warning(
+                'Scrol request has failed on %d shards out of %d.',
+                resp['_shards']['failed'], resp['_shards']['total']
+            )
+            if raise_on_error:
+                raise ScanError(
+                    'Scrol request has failed on %d shards out of %d.',
+                    resp['_shards']['failed'], resp['_shards']['total']
+                )
+
         scroll_id = resp.get('_scroll_id')
-        if scroll_id is None:
+        # end of scroll
+        if scroll_id is None or not resp['hits']['hits']:
             break
 
-def reindex(client, source_index, target_index, target_client=None, chunk_size=500, scroll='5m'):
+def reindex(client, source_index, target_index, query=None, target_client=None,
+        chunk_size=500, scroll='5m', scan_kwargs={}, bulk_kwargs={}):
+
     """
-    Reindex all documents from one index to another, potentially (if
-    `target_client` is specified) on a different cluster.
+    Reindex all documents from one index that satisfy a given query
+    to another, potentially (if `target_client` is specified) on a different cluster.
+    If you don't specify the query you will reindex all the documents.
 
     .. note::
 
@@ -211,19 +279,36 @@ def reindex(client, source_index, target_index, target_client=None, chunk_size=5
         read if `target_client` is specified as well)
     :arg source_index: index (or list of indices) to read documents from
     :arg target_index: name of the index in the target cluster to populate
+    :arg query: body for the :meth:`~elasticsearch.Elasticsearch.search` api
     :arg target_client: optional, is specified will be used for writing (thus
         enabling reindex between clusters)
     :arg chunk_size: number of docs in one chunk sent to es (default: 500)
     :arg scroll: Specify how long a consistent view of the index should be
         maintained for scrolled search
+    :arg scan_kwargs: additional kwargs to be passed to
+        :func:`~elasticsearch.helpers.scan`
+    :arg bulk_kwargs: additional kwargs to be passed to
+        :func:`~elasticsearch.helpers.bulk`
     """
     target_client = client if target_client is None else target_client
 
-    docs = scan(client, index=source_index, scroll=scroll)
+    docs = scan(client,
+        query=query,
+        index=source_index,
+        scroll=scroll,
+        fields=('_source', '_parent', '_routing', '_timestamp'),
+        **scan_kwargs
+    )
     def _change_doc_index(hits, index):
         for h in hits:
             h['_index'] = index
+            if 'fields' in h:
+                h.update(h.pop('fields'))
             yield h
 
+    kwargs = {
+        'stats_only': True,
+    }
+    kwargs.update(bulk_kwargs)
     return bulk(target_client, _change_doc_index(docs, target_index),
-        chunk_size=chunk_size, stats_only=True)
+        chunk_size=chunk_size, **kwargs)

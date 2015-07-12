@@ -4,7 +4,7 @@ from setuptools import setup, find_packages
 import sys
 import os
 
-VERSION = (1, 4, 0, 'dev')
+VERSION = (1, 6, 0)
 __version__ = VERSION
 __versionstr__ = '.'.join(map(str, VERSION))
 
@@ -32,13 +32,13 @@ if sys.version_info[0] == 2:
     # only require thrift if we are going to use it
     if os.environ.get('TEST_ES_CONNECTION', None) == 'ThriftConnection':
         tests_require.append('thrift==0.9.1')
-    tests_require.append('pylibmc==1.2.3')
+    tests_require.append('pylibmc==1.4.1')
 
 setup(
     name = 'elasticsearch',
     description = "Python client for Elasticsearch",
     license="Apache License, Version 2.0",
-    url = "https://github.com/elasticsearch/elasticsearch-py",
+    url = "https://github.com/elastic/elasticsearch-py",
     long_description = long_description,
     version = __versionstr__,
     author = "Honza Král",
@@ -48,7 +48,7 @@ setup(
         exclude=('test_elasticsearch*', )
     ),
     classifiers = [
-        "Development Status :: 4 - Beta",
+        "Development Status :: 5 - Production/Stable",
         "License :: OSI Approved :: Apache Software License",
         "Intended Audience :: Developers",
         "Operating System :: OS Independent",

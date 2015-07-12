@@ -6,7 +6,7 @@ class NodesClient(NamespacedClient):
         """
         The cluster nodes info API allows to retrieve one or more (or all) of
         the cluster nodes information.
-        `<http://www.elasticsearch.org/guide/en/elasticsearch/reference/current/cluster-nodes-info.html>`_
+        `<http://www.elastic.co/guide/en/elasticsearch/reference/current/cluster-nodes-info.html>`_
 
         :arg node_id: A comma-separated list of node IDs or names to limit the
             returned information; use `_local` to return information from the
@@ -28,7 +28,7 @@ class NodesClient(NamespacedClient):
         """
         The nodes shutdown API allows to shutdown one or more (or all) nodes in
         the cluster.
-        `<http://www.elasticsearch.org/guide/en/elasticsearch/reference/current/cluster-nodes-shutdown.html>`_
+        `<http://www.elastic.co/guide/en/elasticsearch/reference/current/cluster-nodes-shutdown.html>`_
 
         :arg node_id: A comma-separated list of node IDs or names to perform the
             operation on; use `_local` to perform the operation on the node
@@ -41,12 +41,13 @@ class NodesClient(NamespacedClient):
             'nodes', node_id, '_shutdown'), params=params)
         return data
     
-    @query_params('completion_fields', 'fielddata_fields', 'fields', 'groups', 'human', 'level', 'types')
+    @query_params('completion_fields', 'fielddata_fields', 'fields', 'groups',
+        'human', 'level', 'types')
     def stats(self, node_id=None, metric=None, index_metric=None, params=None):
         """
         The cluster nodes stats API allows to retrieve one or more (or all) of
         the cluster nodes statistics.
-        `<http://www.elasticsearch.org/guide/en/elasticsearch/reference/current/cluster-nodes-stats.html>`_
+        `<http://www.elastic.co/guide/en/elasticsearch/reference/current/cluster-nodes-stats.html>`_
 
         :arg node_id: A comma-separated list of node IDs or names to limit the
             returned information; use `_local` to return information from the
@@ -80,17 +81,21 @@ class NodesClient(NamespacedClient):
             node_id, 'stats', metric, index_metric), params=params)
         return data
     
-    @query_params('type_', 'interval', 'snapshots', 'threads')
+    @query_params('type_', 'ignore_idle_threads', 'interval', 'snapshots',
+        'threads')
     def hot_threads(self, node_id=None, params=None):
         """
         An API allowing to get the current hot threads on each node in the cluster.
-        `<http://www.elasticsearch.org/guide/en/elasticsearch/reference/current/cluster-nodes-hot-threads.html>`_
+        `<http://www.elastic.co/guide/en/elasticsearch/reference/current/cluster-nodes-hot-threads.html>`_
 
         :arg node_id: A comma-separated list of node IDs or names to limit the
             returned information; use `_local` to return information from the
             node you're connecting to, leave empty to get information from all
             nodes
         :arg type_: The type to sample (default: cpu)
+        :arg ignore_idle_threads: Don't show threads that are in known-idle
+            places, such as waiting on a socket select or pulling from an empty
+            task queue (default: true)
         :arg interval: The interval for the second sampling of threads
         :arg snapshots: Number of samples of thread stacktrace (default: 10)
         :arg threads: Specify the number of threads to provide information for

@@ -29,7 +29,7 @@ CATCH_CODES = {
 }
 
 # test features we have implemented
-IMPLEMENTED_FEATURES = ('regex', 'gtelte')
+IMPLEMENTED_FEATURES = ('gtelte', 'stash_in_path')
 
 # broken YAML tests on some releases
 SKIP_TESTS = {
@@ -71,7 +71,8 @@ class YamlTestCase(ElasticsearchTestCase):
             if not step:
                 continue
             step = step.replace('\1', '.')
-            if step.isdigit():
+            step = self._resolve(step)
+            if step.isdigit() and step not in value:
                 step = int(step)
                 self.assertIsInstance(value, list)
                 self.assertGreater(len(value), step)
@@ -150,9 +151,11 @@ class YamlTestCase(ElasticsearchTestCase):
 
         if 'version' in skip:
             version, reason = skip['version'], skip['reason']
+            if version == 'all':
+                raise SkipTest(reason)
             min_version, max_version = version.split('-')
-            min_version = _get_version(min_version)
-            max_version = _get_version(max_version)
+            min_version = _get_version(min_version) or (0, )
+            max_version = _get_version(max_version) or (999, )
             if  min_version <= self.es_version <= max_version:
                 raise SkipTest(reason)
 
@@ -165,7 +168,8 @@ class YamlTestCase(ElasticsearchTestCase):
         if catch in CATCH_CODES:
             self.assertEquals(CATCH_CODES[catch], exception.status_code)
         elif catch[0] == '/' and catch[-1] == '/':
-            self.assertTrue(re.search(catch[1:-1], exception.error))
+            self.assertTrue(re.search(catch[1:-1], repr(exception.info)), '%s not in %r' % (catch, exception.info))
+        self.last_response = exception.info
 
     def run_gt(self, action):
         for key, value in action.items():

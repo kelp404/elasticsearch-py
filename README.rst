@@ -5,6 +5,12 @@ Official low-level client for Elasticsearch. Its goal is to provide common
 ground for all Elasticsearch-related code in Python; because of this it tries
 to be opinion-free and very extendable.
 
+For a more high level client library with more limited scope, have a look at
+`elasticsearch-dsl`_ - it is a more pythonic library sitting on top of
+``elasticsearch-py``.
+
+.. _elasticsearch-dsl: http://elasticsearch-dsl.rtfd.org/
+
 Compatibility
 -------------
 
@@ -86,7 +92,7 @@ The client's features include:
 License
 -------
 
-Copyright 2013 Elasticsearch
+Copyright 2015 Elasticsearch
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -103,6 +109,5 @@ limitations under the License.
 Build status
 ------------
 
-.. image:: https://secure.travis-ci.org/elasticsearch/elasticsearch-py.png
-   :target: http://travis-ci.org/#!/elasticsearch/elasticsearch-py
-
+.. image:: https://secure.travis-ci.org/elastic/elasticsearch-py.png
+   :target: http://travis-ci.org/#!/elastic/elasticsearch-py

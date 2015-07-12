@@ -5,6 +5,12 @@ Official low-level client for Elasticsearch. Its goal is to provide common
 ground for all Elasticsearch-related code in Python; because of this it tries
 to be opinion-free and very extendable.
 
+For a more high level client library with more limited scope, have a look at
+`elasticsearch-dsl`_ - it is a more pythonic library sitting on top of
+``elasticsearch-py``.
+
+.. _elasticsearch-dsl: http://elasticsearch-dsl.rtfd.org/
+
 Compatibility
 -------------
 
@@ -89,6 +95,14 @@ of the relevant component and pass it in as a parameter to be used instead of
 the default implementation.
 
 
+.. note::
+
+    Since we use persistent connections throughout the client it means that the
+    client doesn't tolerate ``fork`` very well. If your application calls for
+    multiple processes make sure you create a fresh client after call to
+    ``fork``.
+
+
 Automatic Retries
 ~~~~~~~~~~~~~~~~~
 
@@ -154,7 +168,7 @@ elasticsearch cluster, including certificate verification and http auth::
     )
 
 
-..  note::
+..  warning::
 
     By default SSL certificates won't be verified, pass in
     ``verify_certs=True`` to make sure your certificates will get verified. The
